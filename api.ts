@@ -1,0 +1,24 @@
+const API_BASE = (process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8788/api').replace(/\/$/, '');
+const API_KEY = process.env.EXPO_PUBLIC_API_KEY || '';
+
+export class ApiError extends Error {
+  constructor(message: string, public status = 0) { super(message); this.name = 'ApiError'; }
+}
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(API_BASE + (path.startsWith('/') ? path : '/' + path), {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(API_KEY ? { 'X-API-Key': API_KEY } : {}), ...init.headers },
+    });
+  } catch {
+    throw new ApiError('Cannot reach PropertyHub API. Check EXPO_PUBLIC_API_URL and ensure the API is reachable on your LAN.');
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(payload.error || 'API request failed (' + response.status + ')', response.status);
+  return payload as T;
+}
+export type ApiProperty = { id:string; name:string; location:string; type:string; units:number; occupied:number; rent:number; monthlyRent:number; status:string };
+export type ApiTenant = { id:string; name:string; email?:string|null; phone?:string|null; unit:string; property:string; propertyId:string; monthlyRent:number; rent:number; paymentStatus:string; status:string; leaseId?:string|null };
+export type ApiIssue = { id:string; title:string; description?:string|null; propertyId:string; property:string; priority:string; status:string; createdAt:string; resolvedAt?:string|null };
+export type ApiDashboard = { currency:string; properties:number; units:number; occupiedUnits:number; rentBilled:number; rentCollected:number; outstandingRent:number; openMaintenance:number; demoData:false; source:'postgresql' };
