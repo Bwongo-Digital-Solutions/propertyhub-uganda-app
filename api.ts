@@ -22,3 +22,5 @@ export type ApiProperty = { id:string; name:string; location:string; type:string
 export type ApiTenant = { id:string; name:string; email?:string|null; phone?:string|null; unit:string; property:string; propertyId:string; monthlyRent:number; rent:number; paymentStatus:string; status:string; leaseId?:string|null };
 export type ApiIssue = { id:string; title:string; description?:string|null; propertyId:string; property:string; priority:string; status:string; createdAt:string; resolvedAt?:string|null };
 export type ApiDashboard = { currency:string; properties:number; units:number; occupiedUnits:number; rentBilled:number; rentCollected:number; outstandingRent:number; openMaintenance:number; demoData:false; source:'postgresql' };
+
+export type ApiUnit = { id:string; code:string; propertyId:string; property:string; monthlyRent:number; status:'VACANT'|'OCCUPIED'|'RESERVED'|'UNAVAILABLE' };
