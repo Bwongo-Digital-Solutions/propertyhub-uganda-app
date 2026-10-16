@@ -33,7 +33,7 @@ Changes made in the mobile app are sent to the API and persisted in PostgreSQL. 
 - **Properties:** list and create properties/units.
 - **Tasks:** list, create, and update maintenance requests.
 - **Tenants:** list tenants and register a tenant against a vacant unit, creating an active lease.
-- **More:** connection status and additional workspace entry points.
+- **More:** live rent invoices, payment ledger, pending-payment confirmation, connection status, and additional workspace entry points.
 
 A fresh database is expected to be empty apart from its organisation record. No properties, tenants, payments, or invoices are preloaded.
 
