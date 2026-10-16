@@ -1,0 +1,13 @@
+{
+  "expo":{
+    "name":"PropertyHub Uganda",
+    "slug":"propertyhub-uganda",
+    "version":"0.1.0",
+    "orientation":"portrait",
+    "userInterfaceStyle":"light",
+    "scheme":"propertyhub",
+    "splash":{"backgroundColor":"#f5f8f6"},
+    "ios":{"supportsTablet":true,"bundleIdentifier":"ug.bwongo.propertyhub"},
+    "android":{"package":"ug.bwongo.propertyhub","adaptiveIcon":{"backgroundColor":"#f5f8f6"}}
+  }
+}
