@@ -1,46 +1,31 @@
 # PropertyHub Uganda — Mobile Companion
 
-React Native + Expo companion prototype for property owners, managers, caretakers, technicians, and tenants.
+React Native + Expo companion app for property owners, managers, caretakers, technicians, and tenants.
 
-## IBM Carbon styling branch
+## Live database testing
 
-The `carbon/mobile-mvp` branch applies IBM Carbon design tokens and interaction patterns to the React Native UI. It uses shared Carbon palette, spacing, and radius tokens in `carbonTheme.ts`, with native controls rather than web-only `@carbon/react` components (which are not compatible with React Native). The Home, Properties, Tasks, Tenants, and More screens retain their prototype interactions while using Carbon-style blue interaction states, neutral layers, accessible contrast, and flatter component geometry.
+The mobile app now reads and writes property, tenant/lease, and maintenance records through the API in the `Bwongo-Digital-Solutions/propertyhub-uganda` repository. It does not include sample property, tenant, or maintenance records.
 
-To test this branch:
+1. Start PostgreSQL and the API using the web repository's local setup instructions (`docker compose up -d --build`).
+2. Copy this app's environment template and set the values:
+   ```bash
+   cp .env.example .env
+   ```
+3. Set `EXPO_PUBLIC_API_URL=http://YOUR_UBUNTU_LAN_IP:8788/api`. Find the Ubuntu LAN address with `hostname -I`. Do not use `localhost` on a physical phone.
+4. Set `EXPO_PUBLIC_API_KEY` to the same local test key as `API_ACCESS_KEY` in the web repository's `.env`.
+5. Run:
+   ```bash
+   npm install
+   npx expo start
+   ```
+6. Connect your phone and Ubuntu machine to the same trusted Wi-Fi/LAN. Ensure the host firewall allows TCP port 8788 from that device. Restart Expo after changing `.env`.
 
-```bash
-git checkout carbon/mobile-mvp
-npm install
-npx expo start
-```
+The app shows live dashboard figures, properties, tenant/lease records, and maintenance requests. Adding properties creates PostgreSQL records and units; registering a tenant creates an active lease for a vacant unit; maintenance creation and status changes are persisted. Empty database tables display empty states rather than sample records.
 
-Review the native app on an Android emulator or development device before merging into `prototype/mobile-mvp`.
+## IBM Carbon-inspired styling
 
-## Included prototype screens
+This branch uses shared IBM Carbon-inspired palette, spacing, and radius tokens with native React Native components. The web-only `@carbon/react` library is not used in the Expo app.
 
-- **Home:** portfolio KPIs and quick actions.
-- **Properties:** searchable property list and add-property form.
-- **Tasks:** maintenance request list with local status transitions.
-- **Tenants:** sample tenant directory and rent status.
-- **More:** reports, settings, lease reminders, and security entry points.
+## Security limitations
 
-All sample data is illustrative and held in app memory. This is not a production app and must not be used to store real tenant or payment information.
-
-## Run locally
-
-Requirements: Node.js 22+, npm 10+, Android Studio for Android emulator/device or Xcode on macOS for iOS.
-
-```bash
-npm install
-npx expo start
-```
-
-Press `a` to open Android, `i` for iOS on macOS, or `w` for web preview.
-
-## API integration
-
-The companion is designed to use the shared API in `Bwongo-Digital-Solutions/propertyhub-uganda`. Before integration, configure an environment-specific API base URL and implement authenticated API clients. Do not hardcode payment provider secrets in the mobile app.
-
-## Production requirements
-
-Authentication, organisation-scoped authorisation, secure storage, API-backed persistence, push notifications, offline conflict handling, accessibility checks, and payment verification are not yet implemented.
+This is a trusted-network test setup with a shared API key and a single test organisation. It is not production authentication or complete role-based authorisation. Do not expose the API to the public internet or use real tenant/payment data until authenticated user access, organisation membership, audit logging, secure payment reconciliation, and production deployment controls are completed.
