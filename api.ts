@@ -24,3 +24,6 @@ export type ApiIssue = { id:string; title:string; description?:string|null; prop
 export type ApiDashboard = { currency:string; properties:number; units:number; occupiedUnits:number; rentBilled:number; rentCollected:number; outstandingRent:number; openMaintenance:number; demoData:false; source:'postgresql' };
 
 export type ApiUnit = { id:string; code:string; propertyId:string; property:string; monthlyRent:number; status:'VACANT'|'OCCUPIED'|'RESERVED'|'UNAVAILABLE' };
+
+export type ApiInvoice = { id:string; reference:string; description:string; amount:number; dueDate:string; createdAt:string; leaseId:string; tenantId:string; tenant:string; propertyId:string; property:string; unitId:string; unit:string; allocated:number; confirmed:number; balance:number; status:'OPEN'|'OVERDUE'|'PARTIAL'|'PAID' };
+export type ApiPayment = { id:string; provider:string; reference?:string|null; amount:number; currency:string; status:string; receivedAt?:string|null; createdAt:string; tenant:string; property:string; unit:string };
