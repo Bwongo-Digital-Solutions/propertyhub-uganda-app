@@ -2,6 +2,20 @@
 
 React Native + Expo companion prototype for property owners, managers, caretakers, technicians, and tenants.
 
+## IBM Carbon styling branch
+
+The `carbon/mobile-mvp` branch applies IBM Carbon design tokens and interaction patterns to the React Native UI. It uses shared Carbon palette, spacing, and radius tokens in `carbonTheme.ts`, with native controls rather than web-only `@carbon/react` components (which are not compatible with React Native). The Home, Properties, Tasks, Tenants, and More screens retain their prototype interactions while using Carbon-style blue interaction states, neutral layers, accessible contrast, and flatter component geometry.
+
+To test this branch:
+
+```bash
+git checkout carbon/mobile-mvp
+npm install
+npx expo start
+```
+
+Review the native app on an Android emulator or development device before merging into `prototype/mobile-mvp`.
+
 ## Included prototype screens
 
 - **Home:** portfolio KPIs and quick actions.
