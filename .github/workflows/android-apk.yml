@@ -18,15 +18,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: latest
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          if [[ -z "${SDKMANAGER}" ]]; then
+            echo "Could not locate Android sdkmanager under ${ANDROID_HOME}/cmdline-tools" >&2
+            exit 1
+          fi
+          yes | "${SDKMANAGER}" --licenses >/dev/null || true
+          "${SDKMANAGER}" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
       - run: npm install
       - run: npm run typecheck
       - run: npx expo prebuild --platform android --no-install --non-interactive
