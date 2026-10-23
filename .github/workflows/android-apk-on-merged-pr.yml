@@ -1,0 +1,52 @@
+name: Android APK Build on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  build-apk:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build Android APK via EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build --platform android --profile preview --non-interactive --json > build-info.json
+          cat build-info.json
+
+      - name: Download generated APK
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          BUILD_ID=$(node -p "JSON.parse(require('fs').readFileSync('build-info.json', 'utf8')).build.id")
+          echo "Downloading APK for build $BUILD_ID"
+          eas build:download --id "$BUILD_ID" --path ./propertyhub-uganda.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: propertyhub-uganda-apk-${{ github.event.pull_request.number }}
+          path: ./propertyhub-uganda.apk
+          if-no-files-found: error
