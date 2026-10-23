@@ -1,6 +1,7 @@
+import * as SecureStore from 'expo-secure-store';
+
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL || '').trim().replace(/\/$/, '');
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || '';
-import * as SecureStore from 'expo-secure-store';
 const TOKEN_KEY = 'propertyhub.accessToken';
 let accessToken = '';
 let tokenLoaded = false;
@@ -14,7 +15,7 @@ export class ApiError extends Error {
 }
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!API_BASE) throw new ApiError('EXPO_PUBLIC_API_URL is not configured. Copy .env.example to .env and set your Ubuntu LAN IP or emulator API address.');
-  if (!API_KEY) throw new ApiError('EXPO_PUBLIC_API_KEY is not configured. For trusted local testing, match it to API_ACCESS_KEY in the web repository .env.');
+  await restoreAccessToken();
   let response: Response;
   try {
     response = await fetch(API_BASE + (path.startsWith('/') ? path : '/' + path), {
