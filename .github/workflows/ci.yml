@@ -1,9 +1,9 @@
 name: Mobile CI
 on:
   push:
-    branches: [main, "prototype/**"]
+    branches: [main, "prototype/**", "carbon/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "prototype/**"]
 jobs:
   typecheck:
     runs-on: ubuntu-latest
