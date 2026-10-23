@@ -1,0 +1,34 @@
+name: Android Debug APK
+on:
+  workflow_dispatch:
+  push:
+    branches: ["carbon/mobile-mvp"]
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8788/api' }}
+      EXPO_PUBLIC_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: npm install
+      - run: npm run typecheck
+      - run: npx expo prebuild --platform android --no-install --non-interactive
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: propertyhub-uganda-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
