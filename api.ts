@@ -1,5 +1,13 @@
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL || '').trim().replace(/\/$/, '');
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || '';
+import * as SecureStore from 'expo-secure-store';
+const TOKEN_KEY = 'propertyhub.accessToken';
+let accessToken = '';
+let tokenLoaded = false;
+export const hasLocalApiKey = Boolean(API_KEY);
+export async function restoreAccessToken(){ if(!tokenLoaded){accessToken = await SecureStore.getItemAsync(TOKEN_KEY) || ''; tokenLoaded = true;} return accessToken; }
+export async function clearAccessToken(){ accessToken=''; tokenLoaded=true; await SecureStore.deleteItemAsync(TOKEN_KEY); }
+export async function signIn(email:string,password:string,organisationId?:string){ const result=await apiRequest<{token:string;user:{id:string;organisationId:string;name:string;email:string;role:string}}>('/auth/login',{method:'POST',body:JSON.stringify({email,password,...(organisationId?{organisationId}:{})})}); accessToken=result.token;tokenLoaded=true;await SecureStore.setItemAsync(TOKEN_KEY,result.token);return result; }
 
 export class ApiError extends Error {
   constructor(message: string, public status = 0) { super(message); this.name = 'ApiError'; }
@@ -11,7 +19,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   try {
     response = await fetch(API_BASE + (path.startsWith('/') ? path : '/' + path), {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(API_KEY ? { 'X-API-Key': API_KEY } : {}), ...init.headers },
+      headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : API_KEY ? { 'X-API-Key': API_KEY } : {}), ...init.headers },
     });
   } catch {
     throw new ApiError('Cannot reach PropertyHub API. Check EXPO_PUBLIC_API_URL and ensure the API is reachable on your LAN.');
