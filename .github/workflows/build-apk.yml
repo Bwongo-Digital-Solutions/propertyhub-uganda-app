@@ -22,9 +22,26 @@ concurrency:
 
 jobs:
   build-apk:
-    name: Build PropertyHub Android APK
+    name: Build signed PropertyHub Android APK
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_API_KEY: ${{ vars.EXPO_PUBLIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD EXPO_PUBLIC_API_URL EXPO_PUBLIC_API_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Required GitHub secret/variable $name is missing."
+              exit 1
+            fi
+          done
+
       - name: Check out source
         uses: actions/checkout@v4
 
@@ -32,9 +49,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # This repository currently has no npm lockfile. Disable package caching
-          # until a package-lock.json is committed, because setup-node caching
-          # requires a lockfile to calculate its cache key.
           package-manager-cache: false
 
       - name: Set up Java
@@ -53,29 +67,78 @@ jobs:
         run: npx expo prebuild --platform android --no-install
         env:
           CI: '1'
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_API_KEY: ${{ vars.EXPO_PUBLIC_API_KEY }}
 
-      - name: Build APK
+      - name: Configure persistent release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/propertyhub-release.keystore"
+          echo "MYAPP_UPLOAD_STORE_FILE=$RUNNER_TEMP/propertyhub-release.keystore" >> "$GITHUB_ENV"
+          echo "MYAPP_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "MYAPP_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "MYAPP_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+          if "signingConfigs {" not in s:
+              raise SystemExit("Could not find signingConfigs block in generated android/app/build.gradle")
+          release_config = """
+              release {
+                  if (System.getenv("MYAPP_UPLOAD_STORE_FILE")) {
+                      storeFile file(System.getenv("MYAPP_UPLOAD_STORE_FILE"))
+                      storePassword System.getenv("MYAPP_UPLOAD_STORE_PASSWORD")
+                      keyAlias System.getenv("MYAPP_UPLOAD_KEY_ALIAS")
+                      keyPassword System.getenv("MYAPP_UPLOAD_KEY_PASSWORD")
+                  }
+              }
+          """
+          s = s.replace("signingConfigs {", "signingConfigs {\n" + release_config, 1)
+          match = re.search(r"(buildTypes\s*\{.*?\brelease\s*\{)(.*?)(\n\s*\})", s, re.S)
+          if not match:
+              raise SystemExit("Could not locate release build type in generated build.gradle")
+          body = match.group(2)
+          body = re.sub(r"signingConfig\s+signingConfigs\.debug", "signingConfig signingConfigs.release", body)
+          if "signingConfig signingConfigs.release" not in body:
+              body = "\n                signingConfig signingConfigs.release" + body
+          s = s[:match.start(2)] + body + s[match.end(2):]
+          p.write_text(s)
+          PY
+
+      - name: Build release APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_API_KEY: ${{ vars.EXPO_PUBLIC_API_KEY }}
 
-      - name: Verify APK exists
+      - name: Verify signed release APK
         shell: bash
         run: |
           set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/release"
-          find "$APK_PATH" -maxdepth 1 -name '*.apk' -type f -print -quit | grep -q .
-          ls -lh "$APK_PATH"/*.apk
+          APK="$(find "$APK_PATH" -maxdepth 1 -name '*.apk' -type f -print -quit)"
+          test -n "$APK"
+          ls -lh "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print -quit)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          echo "Verified signed APK: $APK"
 
-      # Keep artifacts only for main-branch builds or manually requested builds.
-      # PR/feature-branch builds still validate compilation but do not consume
-      # artifact storage for every commit.
       - name: Upload APK artifact
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
         uses: actions/upload-artifact@v4
         with:
-          name: propertyhub-uganda-android-apk-${{ github.run_number }}
+          name: propertyhub-uganda-android-release-signed-${{ github.run_number }}
           path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 3
