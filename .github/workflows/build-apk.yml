@@ -4,13 +4,8 @@ on:
   push:
     branches:
       - main
-      - '**'
-    paths:
-      - '**'
-      - '!README.md'
-  pull_request:
-    branches:
-      - main
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -135,7 +130,7 @@ jobs:
           echo "Verified signed APK: $APK"
 
       - name: Upload APK artifact
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release'
         uses: actions/upload-artifact@v4
         with:
           name: propertyhub-uganda-android-release-signed-${{ github.run_number }}
